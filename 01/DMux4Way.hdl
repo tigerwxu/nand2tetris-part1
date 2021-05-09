@@ -16,5 +16,8 @@ CHIP DMux4Way {
     OUT a, b, c, d;
 
     PARTS:
-    // Put your code here:
+    DMux(in=in, sel=sel[0], a=temp0, b=temp1);
+    // temp0 is stream a+c, temp1 is stream b+d 
+    DMux(in=temp0, sel=sel[1], a=a, b=c);
+    DMux(in=temp1, sel=sel[1], a=b, b=d);
 }

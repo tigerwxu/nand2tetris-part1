@@ -7,6 +7,7 @@
  * 8-way demultiplexor:
  * {a, b, c, d, e, f, g, h} = {in, 0, 0, 0, 0, 0, 0, 0} if sel == 000
  *                            {0, in, 0, 0, 0, 0, 0, 0} if sel == 001
+ *                            {0, 0, in, 0, 0, 0, 0, 0} if sel == 010
  *                            etc.
  *                            {0, 0, 0, 0, 0, 0, 0, in} if sel == 111
  */
@@ -16,5 +17,11 @@ CHIP DMux8Way {
     OUT a, b, c, d, e, f, g, h;
 
     PARTS:
-    // Put your code here:
+    DMux(in=in, sel=sel[0], a=temp0, b=temp1);
+    // First split into streams for a, c, e, g and b, d, f, h
+
+    DMux4Way(in=temp0, sel=sel[1..2], a=a, b=c, c=e, d=g);
+    DMux4Way(in=temp1, sel=sel[1..2], a=b, b=d, c=f, d=h);
+
+
 }
