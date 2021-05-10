@@ -42,5 +42,30 @@ CHIP ALU {
         ng; // 1 if (out < 0),  0 otherwise
 
     PARTS:
-   // Put you code here:
+    // First deal with input pre-processing:
+    // Zero if needed:
+    Mux16(a=x, b=false, sel=zx, out=x0); // a if sel=0, b if sel=1
+    Mux16(a=y, b=false, sel=zy, out=y0);
+    
+    // Negate if needed:
+    Not16(in=x0, out=x1);
+    Not16(in=y0, out=y1);
+    Mux16(a=x0, b=x1, sel=nx, out=finalx);
+    Mux16(a=y0, b=y1, sel=ny, out=finaly);
+    
+    // Apply and/add and select correct one
+    And16(a=finalx, b=finaly, out=fxANDfy);
+    Add16(a=finalx, b=finaly, out=fxADDfy);
+    Mux16(a=fxANDfy, b=fxADDfy, sel=f, out=tempOut);
+
+    // Negate the result if necessary;
+    Not16(in=tempOut, out=NOTtempOut);
+    Mux16(a=tempOut, b=NOTtempOut, sel=no, out=out, out[0..7]=zr0, out[8..15]=zr1, out[15]=ng);
+
+    // Deal with out status pins (zr and ng):
+    // Two's complement is negative when msb is negative, so out[15]=ng (above)
+    Or8Way(in=zr0, out=o1);
+    Or8Way(in=zr1, out=o2);
+    Or(a=o1, b=o2, out=o3);
+    Not(in=o3, out=zr);
 }
