@@ -17,4 +17,16 @@ CHIP PC {
 
     PARTS:
     // Put your code here:
+
+    // Check if loading a new value to PC
+    Or(a=load, b=reset, out=temp0);
+    Or(a=temp0, b=inc, out=newFlag);
+
+    // Figure out what that new value is
+    Inc16(in=result, out=incByOne);
+    Mux16(a=incByOne, b=in, sel=load, out=temp1); // if load then temp1=in[16]
+    Mux16(a=temp1, b=false, sel=reset, out=newVal); // if reset then newVal=0
+
+    // Write new val if needed
+    Register(in=newVal, load=newFlag, out=result, out=out);
 }
