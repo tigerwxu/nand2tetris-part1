@@ -24,8 +24,9 @@ CHIP PC {
 
     // Figure out what that new value is
     Inc16(in=result, out=incByOne);
-    Mux16(a=incByOne, b=in, sel=load, out=temp1); // if load then temp1=in[16]
-    Mux16(a=temp1, b=false, sel=reset, out=newVal); // if reset then newVal=0
+    Mux16(a=result, b=incByOne, sel=inc, out=temp1); // if inc then increment result
+    Mux16(a=incByOne, b=in, sel=load, out=temp2); // if load then temp2=in[16]
+    Mux16(a=temp2, b=false, sel=reset, out=newVal); // if reset then newVal=0
 
     // Write new val if needed
     Register(in=newVal, load=newFlag, out=result, out=out);
