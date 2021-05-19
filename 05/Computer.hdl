@@ -19,5 +19,13 @@ CHIP Computer {
     IN reset;
 
     PARTS:
-    // Put your code here:
+    
+    // CPU with outM, writeM, addressM routed to the Memory chip
+    CPU(inM=currWord, instruction=currInstruction, reset=reset, outM=outM, writeM=writeM, addressM=addressM, pc=pc);
+
+    // Memory with output routed to CPU
+    Memory(in=outM, load=writeM, address=addressM, out=currWord);
+
+    // Get instruction at address pointed at by program counter
+    ROM32K(address=pc, out=currInstruction);
 }

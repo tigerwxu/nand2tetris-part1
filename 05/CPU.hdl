@@ -39,5 +39,52 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+
+    // See diagram in chapter 5, unit 5.3, and chapter 4 hack instructions
+    // A instructions have format 0b0vvv vvvv vvvv vvvv
+    // C instructions have format 0b1__a cccc ccdd djjj
+    //                                   1234 5612 3123
+
+    // Instruction Mux and A Register
+    // Prepare either instruction or ALUOut for loading into A register depending on A or C instruction
+    // Opcode instruction[15] (msb) is 0 for A instruction, 1 for C instruction
+    Mux16(a=instruction, b=ALUOut, sel=instruction[15], out=aMuxOut);
+    // Assert load only if A instruction, or C instruction with instruction[5]=d1=1
+    And(a=instruction[15], b=instruction[5], out=isCInstructionWithd1);
+    Not(in=instruction[15], out=isAInstruction);
+    Or(a=isAInstruction, b=isCInstructionWithd1, out=assertLoadA);
+    ARegister(in=aMuxOut, load=assertLoadA, out=ARegOut, out[0..14]=addressM);
+
+    // D register
+    // Assert load only if C instruction with instruction[4]=d2=1
+    And(a=instruction[15], b=instruction[4], out=assertLoadD);
+    DRegister(in=ALUOut, load=assertLoadD, out=ALUIn0);
+
+    // ALU Mux 
+    // Select A or M based on 'a' bit in C instruction
+    Mux16(a=ARegOut, b=inM, sel=instruction[12], out=ALUIn1);
+
+    // ALU (See chapter 2)
+    // ALU control logic corresponds to instruction[6..11]=c6..c1
+    ALU(x=ALUIn0, y=ALUIn1, zx=instruction[11], nx=instruction[10], 
+        zy=instruction[9], ny=instruction[8], f=instruction[7], 
+        no=instruction[6], out=ALUOut, out=outM, zr=ALUzr, ng=ALUng);
+    // Assert load M only if C instruction with instruction[3]=d3=1
+    And(a=instruction[15], b=instruction[3], out=writeM);
+
+    // Program counter and jump logic
+    // If j1 then jump if ALUOut < 0
+    And(a=instruction[2], b=ALUng, out=j1);
+    // If j2 then jump if ALUOut = 0
+    And(a=instruction[1], b=ALUzr, out=j2);
+    // If j3 then jump if ALUOut > 0
+    Or(a=ALUzr, b=ALUng, out=ALUNotPositive);
+    Not(in=ALUNotPositive, out=ALUPositive);
+    And(a=instruction[0], b=ALUPositive, out=j3);
+    // If (j1 || j2 || j3) && is C instruction then assert jump bit
+    Or(a=j1, b=j2, out=j1ORj2);
+    Or(a=j1ORj2, b=j3, out=j1ORj2ORj3);
+    And(a=j1ORj2ORj3, b=instruction[15], out=jump);
+    // Jump if jump=1 to addr pointed by A register
+    PC(in=ARegOut, load=jump, inc=true, reset=reset, out[0..14]=pc);
 }

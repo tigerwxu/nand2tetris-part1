@@ -27,5 +27,24 @@ CHIP Memory {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+
+    // DMux filters load request to correct chip only
+    // Note address[14] is 0 for data addr and 1 for screen addr
+    DMux(in=load, sel=address[14], a=load0, b=load1);
+
+    // First 14 bits correspond to first 16384 addresses (data)
+    // 0b000 0000 0000 0000 - 0b011 1111 1111 1111
+    RAM16K(in=in, load=load0, address=address[0..13], out=dataOut);
+    
+    // Next, screen memory map takes another 8192 addresses
+    // 0b100 0000 0000 0000 - 0b101 1111 1111 1111
+    Screen(in=in, load=load1, address=address[0..12], out=screenOut);
+
+    // Finally, keyboard takes a single address
+    // 0b110 0000 0000 0000
+    Keyboard(out=keyboardOut);
+
+    // A Mux can select the correct output
+    // Note address[13..14] is 00/01 for data, 10 for screen, 11 for keyboard
+    Mux4Way16(a=dataOut, b=dataOut, c=screenOut, d=keyboardOut, sel=address[13..14], out=out);
 }
