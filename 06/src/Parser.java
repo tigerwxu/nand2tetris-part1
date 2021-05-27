@@ -12,31 +12,43 @@ public class Parser
         L_COMMAND
     }
     
-    private String currLine, nextLine;
+    String currLine, nextLine, path;
     private BufferedReader br;
 
     public Parser(String inputPath) throws IOException
     {
+        path = inputPath;
         br = new BufferedReader(new FileReader(inputPath));
         readNextCommand();
     }
 
+    // Check if there is still input (next line is not EOF)
     public boolean hasMoreCommands()
     {
         return (nextLine != null);
     }
     
+    // Advance to the next line in the input file
     public void advance() throws IOException
     {
         currLine = nextLine;
         readNextCommand();
     }
     
+    // Reset the reader back to the beginning of the file
+    public void reset() throws IOException
+    {
+        br.close();
+        currLine = null;
+        br = new BufferedReader(new FileReader(path)); 
+        readNextCommand();
+    }
+    
     public CommandType commandType()
     {
-        if (currLine.matches("\\([\\w-]+\\)")) return CommandType.L_COMMAND; 
+        if (currLine.matches("\\(.+\\)")) return CommandType.L_COMMAND; 
         
-        if (currLine.matches("@[\\w-]+")) return CommandType.A_COMMAND;
+        if (currLine.matches("@.+")) return CommandType.A_COMMAND;
         
         return CommandType.C_COMMAND;
     }
