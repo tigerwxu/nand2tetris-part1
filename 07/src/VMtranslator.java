@@ -56,6 +56,7 @@ public class VMtranslator
         CodeWriter cw = new CodeWriter(outpath);
         for (String vmFileName : vmFileNames)
         {
+            cw.fname = vmFileName; // TODO: Fix single file mode giving empty fname
             String currFile = path.toString() + File.separator + vmFileName;
             Parser parser = new Parser(new BufferedReader(new FileReader(currFile)));
             while (parser.hasMoreCommands())

@@ -2,9 +2,11 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Map;
 
 public class CodeWriter
 {
+    public String fname;
     private BufferedWriter bw;
 
     // Arithmetic on the top two elements of the stack
@@ -176,7 +178,7 @@ public class CodeWriter
     public void writePushPop(CommandType command, String segment, int index) throws IOException
     {
         switch (command) {
-            case C_PUSH:
+            case C_PUSH: // Push value from memory segment onto stack using D register
                 getValueToPush(segment, index);
                 bw.write("@SP\n" +
                          "AM=M+1\n" + // Increment stack pointer, and go there
@@ -184,15 +186,25 @@ public class CodeWriter
                          "M=D\n"      // Store D in there
                         );
                 break;
-            case C_POP:
-                //
+            case C_POP: // Pop value from stack into memory segment
+//                bw.write("@SP\n" +
+//                         "AM=M-1\n" + // Decrement stack pointer and go there
+//                         "D=M\n"      // D now stores the popped value
+//                      );
+                storePoppedValue(segment, index);
                 break;
             default:
                 throw new RuntimeException();
         }
     }
 
-    /**
+    // NOTE: these hack assembly predefined symbols could be replaced with literal constants
+    // I.E.  1, 2, 3, 4, instead of LCL, ARG, THIS, THAT
+    private Map<String, String> baseRegs = Map.ofEntries(Map.entry("local", "LCL"),
+                                                          Map.entry("argument", "ARG"),
+                                                          Map.entry("this", "THIS"),
+                                                          Map.entry("that", "THAT"));
+     /**
      * Generates assembly to set D register to the value to push
      * @param segment - name of the segment
      * @param i - index added to base address of segment
@@ -202,10 +214,99 @@ public class CodeWriter
     {
         String asm = "";
         switch (segment) {
+            
+            // Use an A instruction to load a constant into D
             case "constant":
                 asm = "@" + i + "\n" +
                       "D=A\n";
                 break;
+                
+            // These segments have their base address stored in pointers
+            case "local": case "argument": case "this": case "that":
+                String baseReg = baseRegs.get(segment);
+                asm = "@" + baseReg + "\n" + // Go to base address pointer
+                      "D=M\n" +              // Store base address value
+                      "@" + i + "\n" +       
+                      "A=D+A\n" +            // Add offset to base address and go there
+                      "D=M\n";               // Get value and put into D
+                break;
+                
+            // pointer and temp are fixed at ram[3] and ram[5]
+            case "pointer":
+                asm = "@" + (i + 3) + "\n" +
+                      "D=M\n";
+                break;
+            case "temp":
+                asm = "@" + (i + 5) + "\n" +
+                      "D=M\n";
+                break;
+            // static segment is emulated by exploiting symbolic references,
+            // which is a feature of the hack assembly language.
+            case "static":
+                asm = "@" + fname + "." + i + "\n" +
+                      "D=M\n";
+                break;
+            default:
+                throw new RuntimeException("Invalid Push memory segment: " + segment);
+        }
+        bw.write(asm);
+    }
+    
+    
+    /**
+     * Generates assembly
+     * @param segment - name of the segment
+     * @param i - index added to base address of segment
+     */
+    private void storePoppedValue(String segment, int i) throws IOException
+    {
+        String asm = "";
+        switch (segment) {
+            // Shouldn't ever try to pop into the constant segment
+            case "constant":
+                throw new RuntimeException("Illegal instruction: Attempted to pop into constant segment");
+                
+            // These segments have their base addresses stored in pointers
+            case "local": case "argument": case "this": case "that":
+                String baseReg = baseRegs.get(segment);
+                asm = "@" + baseReg + "\n" + // First calculate target address
+                      "D=M\n" +
+                      "@" + i + "\n" +
+                      "D=D+A\n" +  // D is now the target address
+                      "@R13\n" +
+                      "M=D\n" +    // Temporarily store target address in R13
+                      "@SP\n" +    // Go to stack pointer
+                      "AM=M-1\n" + // Decrement stack pointer and go where it's pointing
+                      "D=M\n" +    // D now stores the popped value
+                      "@R13\n" +
+                      "A=M\n" +    // Point A back to the target address
+                      "M=D\n";     // Store popped value in M
+                break;
+            //
+            case "pointer":
+                asm = "@SP\n" +    // Go to stack pointer
+                      "AM=M-1\n" +
+                      "D=M\n" +    // Store popped value in D
+                      "@" + (i + 3) + "\n" + // Go to segment
+                      "M=D\n";     // Store in segment
+               break;
+            case "temp":
+                asm = "@SP\n" +    // Go to stack pointer
+                      "AM=M-1\n" +
+                      "D=M\n" +    // Store popped value in D
+                      "@" + (i + 5) + "\n" + // Go to segment
+                      "M=D\n";     // Store in segment  
+                break;
+            //    
+            case "static":    
+                asm = "@SP\n" +    // Go to stack pointer
+                      "AM=M-1\n" +
+                      "D=M\n" +    // Store popped value in D
+                      "@" + fname + "." + i + "\n" + // @filename.i
+                      "M=D\n";
+                break;
+            default:
+                throw new RuntimeException("Invalid Pop memory segment: " + segment);
         }
         bw.write(asm);
     }
