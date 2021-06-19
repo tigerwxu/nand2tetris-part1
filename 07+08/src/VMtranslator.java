@@ -16,11 +16,12 @@ public class VMtranslator
         if (!path.exists())
         {
             System.err.println("ERROR: The specified path does not exist");
+            return;
         }
 
         // Build an array of all the vm file names
         String[] vmFileNames = null;
-        if (path.isDirectory()) // If a folder, then list all .vm files
+        if (path.isDirectory()) // If the user passes a directory, then list all .vm files in that directory
         {
             vmFileNames = path.list(new FilenameFilter()
             {
@@ -36,19 +37,22 @@ public class VMtranslator
                 return;
             }
             
-            // Setup output file
-            outpath = new File(path, "out.asm");
+            // Setup output file name as directory name + .asm extension
+            outpath = new File(path, (path.getName() + ".asm"));
         }
-        else if (path.isFile()) // Otherwise, just use the path as is
+        else if (path.isFile()) // Otherwise, if the user passes a file, then get that one file
         {
-            vmFileNames = new String[] { "" };
-            if (!path.getName().endsWith(".vm"))
+            vmFileNames = new String[] { path.getName() }; // 
+            path = path.getParentFile(); // Set path to parent directory of file
+            
+            // Check the file is indeed a .vm file
+            if (!vmFileNames[0].endsWith(".vm"))
             {   
                 System.err.println("ERROR: The specified file is not a .vm file");
                 return;
             }
-            // Setup output file
-            outpath = new File(path.getPath().replaceAll("\\.vm$", ".asm"));
+            // Setup output file as file name with .vm replaced with .asm
+            outpath = new File(path, vmFileNames[0].replaceAll("\\.vm$", ".asm"));
         }
         
         
@@ -56,7 +60,7 @@ public class VMtranslator
         CodeWriter cw = new CodeWriter(outpath);
         for (String vmFileName : vmFileNames)
         {
-            cw.fname = vmFileName; // TODO: Fix single file mode giving empty fname
+            cw.fname = vmFileName;
             String currFile = path.toString() + File.separator + vmFileName;
             Parser parser = new Parser(new BufferedReader(new FileReader(currFile)));
             while (parser.hasMoreCommands())
