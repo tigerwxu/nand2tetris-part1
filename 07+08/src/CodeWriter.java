@@ -6,7 +6,8 @@ import java.util.Map;
 
 public class CodeWriter
 {
-    public String fname;
+    public String currFileName;
+    private String currFunction = "";
     private BufferedWriter bw;
 
     // Arithmetic on the top two elements of the stack
@@ -187,10 +188,6 @@ public class CodeWriter
                         );
                 break;
             case C_POP: // Pop value from stack into memory segment
-//                bw.write("@SP\n" +
-//                         "AM=M-1\n" + // Decrement stack pointer and go there
-//                         "D=M\n"      // D now stores the popped value
-//                      );
                 storePoppedValue(segment, index);
                 break;
             default:
@@ -243,7 +240,7 @@ public class CodeWriter
             // static segment is emulated by exploiting symbolic references,
             // which is a feature of the hack assembly language.
             case "static":
-                asm = "@" + fname + "." + i + "\n" +
+                asm = "@" + currFileName + "." + i + "\n" +
                       "D=M\n";
                 break;
             default:
@@ -254,7 +251,7 @@ public class CodeWriter
     
     
     /**
-     * Generates assembly
+     * Generates assembly to pop stack value into segment[i]
      * @param segment - name of the segment
      * @param i - index added to base address of segment
      */
@@ -302,7 +299,7 @@ public class CodeWriter
                 asm = "@SP\n" +    // Go to stack pointer
                       "AM=M-1\n" +
                       "D=M\n" +    // Store popped value in D
-                      "@" + fname + "." + i + "\n" + // @filename.i
+                      "@" + currFileName + "." + i + "\n" + // @filename.i
                       "M=D\n";
                 break;
             default:
@@ -314,5 +311,56 @@ public class CodeWriter
     public void close() throws IOException
     {
         bw.close();
+    }
+    
+    /**
+     * Writes bootstrap code for initialisation
+     * @throws IOException
+     */
+    public void writeInit() throws IOException
+    {
+        // Set SP to 256 as per standard mapping
+        bw.write("@256\n" +
+                 "D=A\n" +
+                 "@SP\n" +
+                 "M=D\n");
+    }
+    
+    /**
+     * Writes assembly to label current instruction
+     * @param label - name of the label
+     * @throws IOException
+     */
+    public void writeLabel(String label) throws IOException
+    {
+        // Label current address as (file.function$label) to scope to current function
+        bw.write("(" + currFileName + "." + currFunction + "$" + label  + ")\n");
+    }
+    
+    /**
+     * Writes assembly to jump to a label
+     * @param label - name of the label
+     * @throws IOException
+     */
+    public void writeGoto(String label) throws IOException
+    {
+        // Unconditonally jump to @file.function$label
+        bw.write("@" + currFileName + "." + currFunction + "$" + label + "\n" + 
+                 "0; JMP\n");
+    }
+    
+    /**
+     * Writes assembly to pop the first item off the stack and jump if it is true
+     * @param label - name of the label
+     * @throws IOException
+     */
+    public void writeIf(String label) throws IOException
+    {
+        // Pop item off stack, jump if it is true
+        bw.write("@SP\n" +
+                 "AM=M-1\n" +  // Decrement address and go where it's pointing
+                 "D=M\n" +     // Store M in D, as M will change when addressing the jump target
+                 "@" + currFileName + "." + currFunction + "$" + label + "\n" + // @file.function$label
+                 "D; JNE\n" ); // Jump if the stack value was true (not 0)
     }
 }

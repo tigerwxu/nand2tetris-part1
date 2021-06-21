@@ -13,12 +13,17 @@ public class Parser
     private static Map<String, CommandType> commandsMap;
     static
     {
-        commandsMap = Map.ofEntries(entry("add", CommandType.C_ARITHMETIC), entry("sub", CommandType.C_ARITHMETIC),
-                entry("neg", CommandType.C_ARITHMETIC), entry("eq", CommandType.C_ARITHMETIC),
-                entry("gt", CommandType.C_ARITHMETIC), entry("lt", CommandType.C_ARITHMETIC),
-                entry("and", CommandType.C_ARITHMETIC), entry("or", CommandType.C_ARITHMETIC),
-                entry("not", CommandType.C_ARITHMETIC), entry("push", CommandType.C_PUSH),
-                entry("pop", CommandType.C_POP));
+        commandsMap = Map.ofEntries(
+            entry("add", CommandType.C_ARITHMETIC), entry("sub", CommandType.C_ARITHMETIC),
+            entry("neg", CommandType.C_ARITHMETIC), entry("eq", CommandType.C_ARITHMETIC),
+            entry("gt", CommandType.C_ARITHMETIC), entry("lt", CommandType.C_ARITHMETIC),
+            entry("and", CommandType.C_ARITHMETIC), entry("or", CommandType.C_ARITHMETIC),
+            entry("not", CommandType.C_ARITHMETIC), entry("push", CommandType.C_PUSH),
+            entry("pop", CommandType.C_POP), entry("label", CommandType.C_LABEL),
+            entry("goto", CommandType.C_GOTO), entry("if-goto", CommandType.C_IF),
+            entry("function", CommandType.C_FUNCTION), entry("call", CommandType.C_CALL),
+            entry("return", CommandType.C_RETURN)
+        );
     }
 
     public Parser(BufferedReader br) throws IOException
@@ -107,6 +112,7 @@ public class Parser
     private void determineCurrCommandType()
     {
         currCommandType = commandsMap.get(currLineParts[0]);
+        if (currCommandType == null) throw new RuntimeException("Unsupported Command: " + currLineParts[0]);
     }
 
     /**

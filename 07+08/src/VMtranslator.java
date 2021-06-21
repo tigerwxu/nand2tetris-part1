@@ -60,7 +60,7 @@ public class VMtranslator
         CodeWriter cw = new CodeWriter(outpath);
         for (String vmFileName : vmFileNames)
         {
-            cw.fname = vmFileName;
+            cw.currFileName = vmFileName.replaceAll("\\.vm$", "");
             String currFile = path.toString() + File.separator + vmFileName;
             Parser parser = new Parser(new BufferedReader(new FileReader(currFile)));
             while (parser.hasMoreCommands())
@@ -73,6 +73,15 @@ public class VMtranslator
                         break;
                     case C_PUSH: case C_POP:
                         cw.writePushPop(currCType, parser.arg1(), parser.arg2());
+                        break;
+                    case C_LABEL:
+                        cw.writeLabel(parser.arg1());
+                        break;
+                    case C_GOTO:
+                        cw.writeGoto(parser.arg1());
+                        break;
+                    case C_IF:
+                        cw.writeIf(parser.arg1());
                         break;
                 }
             }
