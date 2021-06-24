@@ -60,9 +60,9 @@ public class VMtranslator
         CodeWriter cw = new CodeWriter(outpath);
         for (String vmFileName : vmFileNames)
         {
-            cw.currFileName = vmFileName.replaceAll("\\.vm$", "");
-            String currFile = path.toString() + File.separator + vmFileName;
-            Parser parser = new Parser(new BufferedReader(new FileReader(currFile)));
+            cw.setFileName(vmFileName.replaceAll("\\.vm$", "")); // Set filename as current file name without .vm extension
+            String vmFilePath = path.toString() + File.separator + vmFileName;
+            Parser parser = new Parser(new BufferedReader(new FileReader(vmFilePath)));
             while (parser.hasMoreCommands())
             {
                 parser.advance();
@@ -83,11 +83,18 @@ public class VMtranslator
                     case C_IF:
                         cw.writeIf(parser.arg1());
                         break;
+					case C_CALL:
+						cw.writeCall(parser.arg1(), parser.arg2());
+						break;
+					case C_FUNCTION:
+						cw.writeFunction(parser.arg1(), parser.arg2());
+						break;
+					case C_RETURN:
+						cw.writeReturn();
+						break;
                 }
             }
-            
         }
         cw.close();
     }
-
 }

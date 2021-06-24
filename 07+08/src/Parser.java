@@ -81,7 +81,12 @@ public class Parser
         }
     }
     
-    
+    /**
+     * Get arg2 of the current line. Should only be called for PUSH, POP, FUNCTION, CALL
+     * @return The value of the seconds argument
+     * @throws UnsupportedOperationException - If arg2() is called when the current line
+     * is not of type PUSH, POP, FUNCTION, or CALL
+     */
     public int arg2()
     {
         if (currCommandType == CommandType.C_PUSH ||
